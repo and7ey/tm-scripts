@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Home Assistant Theme Changer
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.4
 // @description  Changes HTML tag based on minute value
 // @match        http://192.168.1.110:8123/*
 // @grant        none
@@ -11,19 +11,32 @@
     'use strict';
 
     // Function to get current time and determine if it's dark mode
-    function isDarkMode() {
+    function isNight() {
         const now = new Date();
-        const hour = now.getHours();
+        const hour = now.getHours() + 3; // consider local time
         const minute = now.getMinutes();
-
-        return (hour === 20 && minute >= 0) || (hour > 20);
+        // console.log(hour);
+        return (hour >= 20 || hour < 8);
     }
 
     // Function to set HTML tag attributes
-    function setHtmlAttributes(isDark) {
+    function setHtmlAttributes(isNight) {
         const htmlTag = document.documentElement;
+        
+        const metaTags = document.querySelectorAll('meta');
+        let colorSchemeMeta = null;
+        metaTags.forEach(meta => {
+            if (meta.name === 'color-scheme') {
+              colorSchemeMeta = meta;
+              return;
+            }
+        });
 
-        if (isDark) {
+        // console.log(isNight);
+
+        if (!isNight) {
+            if (colorSchemeMeta) { colorSchemeMeta.content = 'dark light'; }            
+
             htmlTag.setAttribute('style', `
                 --state-icon-error-color: var(--error-state-color, var(--error-color));
                 --state-unavailable-color: var(--state-icon-unavailable-color, var(--disabled-text-color));
@@ -112,6 +125,8 @@
                 --simple-tooltip-delay-in: 0ms;
             `);
         } else {
+            if (colorSchemeMeta) { colorSchemeMeta.content = 'dark'; }
+
             htmlTag.setAttribute('style', `
                 --state-icon-error-color: var(--error-state-color, var(--error-color));
                 --state-unavailable-color: var(--state-icon-unavailable-color, var(--disabled-text-color));
@@ -281,11 +296,11 @@
     }
 
     // Initial setup
-    setHtmlAttributes(isDarkMode());
+    setHtmlAttributes(isNight());
 
-    // Update every minute
+    // Update every 10 minutes
     setInterval(() => {
-        setHtmlAttributes(isDarkMode());
-    }, 60000);
+        setHtmlAttributes(isNight());
+    }, 600000);
 
 })();
